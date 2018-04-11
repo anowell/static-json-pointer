@@ -1,0 +1,11 @@
+[package]
+name = "json-schema-type"
+version = "0.1.0"
+authors = ["Anthony Nowell <anowell@gmail.com>"]
+
+[lib]
+crate-type = ["proc-macro"]
+
+[dependencies]
+serde_json = "1.0.13"
+proc-macro2 = "0.3.6"
