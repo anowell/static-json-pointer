@@ -1,4 +1,5 @@
 #![feature(proc_macro)]
+#![feature(nll)]
 #![feature(rustc_private)]
 #![crate_type = "proc-macro"]
 
@@ -29,18 +30,26 @@
 //! let age: json_type!("schema.json", "/person/age/type") = Some(22);
 //! ```
 //!
-//! Note: this will reparse the entire JSON for every invocation at compile time.
-//!
-//! Any clever tricks to cache parsing would be wonderfully welcome!
+//! The parsed schemas are cached during build to prevent rereading and reparsing repeatedly during build.
 //!
 //! That is all.
 
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate serde_json;
-use serde_json::Value;
+#[macro_use] extern crate lazy_static;
 
+use serde_json::Value;
 use proc_macro2::TokenTree;
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+lazy_static! {
+    static ref JSON_CACHE: Mutex<HashMap<String, Value>> = {
+        Mutex::new(HashMap::new())
+    };
+}
+
 
 fn extract_string_lit(text: &str) -> &str {
     let start = text.find("\"").expect("How does a literal not have a \"?");
@@ -65,7 +74,7 @@ pub fn json_type(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
        TokenTree::Literal(lit) => lit.to_string(),
        _ => panic!("macro only accepts a string literal as first argument"),
     };
-    let json = ::std::fs::read_to_string(extract_string_lit(&lit1)).expect("JSON file note found");
+
 
     // TODO: verify token2 is a comma
 
@@ -73,10 +82,22 @@ pub fn json_type(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
        TokenTree::Literal(lit) => lit.to_string(),
        _ => panic!("macro only accepts a string literal as second argument"),
     };
+
+    let file_path = extract_string_lit(&lit1);
     let pointer = extract_string_lit(&lit2);
 
-    let val: Value = serde_json::from_str(&json).expect("first argument was not valid JSON");
-    let json_type = val.pointer(&pointer).expect("no value found at JSON pointer");
+
+    let mut cache = JSON_CACHE.lock().unwrap();
+    let json_val = match cache.get(file_path) {
+        Some(val) => val,
+        None => {
+            let json = ::std::fs::read(extract_string_lit(&lit1)).expect("JSON file not found");
+            let val: Value = serde_json::from_slice(&json).expect("first argument was not valid JSON");
+            let _ = cache.insert(file_path.to_owned(), val);
+            cache.get(file_path).unwrap()
+        }
+    };
+    let json_type = json_val.pointer(&pointer).expect("no value found at JSON pointer");
     let json_type_str = json_type.as_str().expect("expected value at JSON pointer to be a string");
 
     let output: proc_macro2::TokenStream = json_type_str.parse().expect("JSON schema type isn't a valid Rust token");

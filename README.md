@@ -1,4 +1,4 @@
-## json_schma_type
+## json_schema_type
 
 Experimental macro to extract a Rust type from a JSON schema
 
@@ -28,6 +28,8 @@ let name: json_type!("schema.json", "/person/name/type") = "Zazu";
 let age: json_type!("schema.json", "/person/age/type") = Some(22);
 ```
 
+The parsed schemas are cached during build to prevent rereading and reparsing repeatedly during build.
+
 ## Why
 
 I have a CLI tool that prompts for many config values, transforms them, verifies them, and writes them to a JSON file.
@@ -37,11 +39,3 @@ Perhaps I should have stuck to fallible runtime abstraction with lots of helpers
 In some ways that would have been easier, in others more complicated.
 
 Or perhaps I should have written it in Python. But what fun would that be?
-
-## Caveats
-
-Note: this will reparse the entire JSON for every invocation at compile time.
-
-Any clever tricks to cache parsing would be wonderfully welcome!
-
-That is all.
