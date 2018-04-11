@@ -8,7 +8,7 @@ If you have a file `schema.json`:
 {
     "person": {
         "name": {
-            "type": "&static str"
+            "type": "&'static str"
         },
         "age": {
             "type": "Option<u32>"
@@ -24,8 +24,8 @@ You can use a JSON pointer to specify the field, Then you can you can extract th
 extern crate json_schema_type;
 use json_schema_type::json_type;
 
-let name: json_type!(include_str!("schema.json"), "/person/name/type") = "Zazu";
-let age: json_type!(include_str!("schema.json"), "/person/age/type") = Some(22);
+let name: json_type!("schema.json", "/person/name/type") = "Zazu";
+let age: json_type!("schema.json", "/person/age/type") = Some(22);
 ```
 
 ## Why

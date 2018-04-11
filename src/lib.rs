@@ -9,7 +9,7 @@
 //! {
 //!     "person": {
 //!         "name": {
-//!             "type": "&static str"
+//!             "type": "&'static str"
 //!         },
 //!         "age": {
 //!             "type": "Option<u32>"
@@ -25,8 +25,8 @@
 //! extern crate json_schema_type;
 //! use json_schema_type::json_type;
 //!
-//! let name: json_type!(include_str!("schema.json"), "/person/name/type") = "Zazu";
-//! let age: json_type!(include_str!("schema.json"), "/person/age/type") = Some(22);
+//! let name: json_type!("schema.json", "/person/name/type") = "Zazu";
+//! let age: json_type!("schema.json", "/person/age/type") = Some(22);
 //! ```
 //!
 //! Note: this will reparse the entire JSON for every invocation at compile time.
@@ -65,7 +65,7 @@ pub fn json_type(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
        TokenTree::Literal(lit) => lit.to_string(),
        _ => panic!("macro only accepts a string literal as first argument"),
     };
-    let json = extract_string_lit(&lit1);
+    let json = ::std::fs::read_to_string(extract_string_lit(&lit1)).expect("JSON file note found");
 
     // TODO: verify token2 is a comma
 

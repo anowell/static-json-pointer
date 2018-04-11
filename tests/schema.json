@@ -1,0 +1,6 @@
+{
+    "foo": { "type": "String" },
+    "bar": { "type": "u32" },
+    "baz": { "type": "Option<String>" },
+    "qux": { "type": "&'static str" }
+}
