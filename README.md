@@ -1,4 +1,4 @@
-## json_schema_type
+## static-json-pointer
 
 Macro to extract Rust tokens and literals from a JSON schema
 
