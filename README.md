@@ -1,6 +1,6 @@
 ## json_schema_type
 
-Experimental macro to extract a Rust type from a JSON schema
+Macro to extract Rust tokens and literals from a JSON schema
 
 If you have a file `schema.json`:
 
@@ -8,34 +8,32 @@ If you have a file `schema.json`:
 {
     "person": {
         "name": {
-            "type": "&'static str"
+            "type": "String",
+            "value": "Zazu"
         },
         "age": {
-            "type": "Option<u32>"
+            "type": "Option<u32>",
+            "value": 42
         }
     }
 }
 ```
 
-You can use a JSON pointer to specify the field, Then you can you can extract the type at compile time with:
+You can use a JSON pointer to specify the field for extracting a token or literal from JSON at compile time:
 
 ```rust
 #![feature(proc_macro)]
-extern crate json_schema_type;
-use json_schema_type::json_type;
+extern crate static_json_pointer;
+use static_json_pointer::json_token;
 
-let name: json_type!("schema.json", "/person/name/type") = "Zazu";
-let age: json_type!("schema.json", "/person/age/type") = Some(22);
+// let name = String::from("Zazu");
+let name = json_token!("schema.json", "/person/name/type")::from(json_literal!("schema.json", "/person/name/value"));
+
+// let age = Option<u32>::from(42);
+let age = json_token!("schema.json", "/person/age/type")::from(json_literal!("schema.json", "/person/age/value"));
+
+assert_eq!(name, "Zazu".to_string());
+assert_eq!(age, Some(42));
 ```
 
-The parsed schemas are cached during build to prevent rereading and reparsing repeatedly during build.
-
-## Why
-
-I have a CLI tool that prompts for many config values, transforms them, verifies them, and writes them to a JSON file.
-Prompting, transforming, and verificiation all vary a bit depending on the type. Those types happen to be defined in a schema file.
-
-Perhaps I should have stuck to fallible runtime abstraction with lots of helpers to handle the runtime type checking of `Value` structs.
-In some ways that would have been easier, in others more complicated.
-
-Or perhaps I should have written it in Python. But what fun would that be?
+The deserialized JSON is cached during build to prevent redundant reading and parsing during build.

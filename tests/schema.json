@@ -1,6 +1,6 @@
 {
-    "foo": { "type": "String" },
-    "bar": { "type": "u32" },
-    "baz": { "type": "Option<String>" },
-    "qux": { "type": "&'static str" }
+    "foo": { "type": "String", "value": "FOO" },
+    "bar": { "type": "u32", "value": 42 },
+    "baz": { "type": "Option<String>", "value": null },
+    "qux": { "type": "&'static str", "value": "QUX" }
 }

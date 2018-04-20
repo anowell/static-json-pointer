@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["Anthony Nowell <anthony@algorithmia.com>"]
 
 [dependencies]
-json-schema-type = { path = ".." }
+serde_json = "1.0"
+static-json-pointer = { path = ".." }

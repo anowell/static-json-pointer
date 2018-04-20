@@ -1,7 +1,10 @@
 [package]
-name = "json-schema-type"
+name = "static-json-pointer"
 version = "0.1.0"
 authors = ["Anthony Nowell <anowell@gmail.com>"]
+description = "Query static JSON for values and tokens at compile time."
+repository = "https://github.com/anowell/static-json-pointer"
+keywords = ["json", "macros"]
 
 [lib]
 crate-type = ["proc-macro"]

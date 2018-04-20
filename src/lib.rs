@@ -3,36 +3,43 @@
 #![feature(rustc_private)]
 #![crate_type = "proc-macro"]
 
-//! Experimental macro to extract a Rust type from a JSON schema
+//! Macro to extract literals and Rust tokens from a JSON schema
 //!
 //! If you have a file `schema.json`:
 //!
+//! ```json
 //! {
 //!     "person": {
 //!         "name": {
-//!             "type": "&'static str"
+//!             "type": "String",
+//!             "value": "Zazu"
 //!         },
 //!         "age": {
-//!             "type": "Option<u32>"
+//!             "type": "Option<u32>",
+//!             "value": 42
 //!         }
 //!     }
 //! }
 //! ```
 //!
-//! You can use a JSON pointer to specify the field, Then you can you can extract the type at compile time with:
+//! You can use a JSON pointer to specify the field for extracting a token or literal from JSON at compile time:
 //!
-//! ```rust
+//! ```rust,ignore
 //! #![feature(proc_macro)]
-//! extern crate json_schema_type;
-//! use json_schema_type::json_type;
+//! extern crate static_json_pointer;
+//! use static_json_pointer::json_token;
 //!
-//! let name: json_type!("schema.json", "/person/name/type") = "Zazu";
-//! let age: json_type!("schema.json", "/person/age/type") = Some(22);
+//! // let name = String::from("Zazu");
+//! let name = json_token!("schema.json", "/person/name/type")::from(json_literal!("schema.json", "/person/name/value"));
+//!
+//! // let age = Option<u32>::from(42);
+//! let age = json_token!("schema.json", "/person/age/type")::from(json_literal!("schema.json", "/person/age/value"));
+//!
+//! assert_eq!(name, "Zazu".to_string());
+//! assert_eq!(age, Some(42));
 //! ```
 //!
-//! The parsed schemas are cached during build to prevent rereading and reparsing repeatedly during build.
-//!
-//! That is all.
+//! The deserialized JSON is cached during build to prevent redundant reading and parsing during build.
 
 extern crate proc_macro;
 extern crate proc_macro2;
@@ -57,16 +64,14 @@ fn extract_string_lit(text: &str) -> &str {
     unsafe { text.get_unchecked(start+1..(end)) }
 }
 
-/// Inline interpolation macro
-#[proc_macro]
-pub fn json_type(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+fn extract_json(input: proc_macro::TokenStream) -> Value {
     let input: proc_macro2::TokenStream = input.into();
 
     let mut trees = input.into_iter();
 
-    let token1 = trees.next().expect("macro expected a string literal");
-    let _token2 = trees.next().expect("macro expected 2 arguments");
-    let token3 = trees.next().expect("macro expected 2 arguments");
+    let token1 = trees.next().expect("json_token! expected 2 arguments");
+    let _token2 = trees.next().expect("json_token! expected 2 arguments");
+    let token3 = trees.next().expect("json_token! expected 2 arguments");
 
     // TODO: panic if too many tokens
 
@@ -91,16 +96,32 @@ pub fn json_type(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let json_val = match cache.get(file_path) {
         Some(val) => val,
         None => {
-            let json = ::std::fs::read(extract_string_lit(&lit1)).expect("JSON file not found");
-            let val: Value = serde_json::from_slice(&json).expect("first argument was not valid JSON");
+            let json = ::std::fs::read(extract_string_lit(&lit1)).expect("failed to read JSON file specified by json_token! macro");
+            let val: Value = serde_json::from_slice(&json).expect("json_token! file is not valid JSON");
             let _ = cache.insert(file_path.to_owned(), val);
             cache.get(file_path).unwrap()
         }
     };
-    let json_type = json_val.pointer(&pointer).expect("no value found at JSON pointer");
-    let json_type_str = json_type.as_str().expect("expected value at JSON pointer to be a string");
+    json_val.pointer(&pointer).expect("json_token! macro did not find a value for this JSON pointer").clone()
+}
 
-    let output: proc_macro2::TokenStream = json_type_str.parse().expect("JSON schema type isn't a valid Rust token");
+/// Inline interpolation macro
+#[proc_macro]
+pub fn json_token(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let json_token = extract_json(input);
+    let json_token_str = json_token.as_str().expect("json_token! macro expected to find a string at this JSON pointer");
+
+    let output: proc_macro2::TokenStream = json_token_str.parse().expect("JSON schema type isn't a valid Rust token");
+    output.into()
+}
+
+
+#[proc_macro]
+pub fn json_literal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let json_token = extract_json(input);
+    let json_token_str = serde_json::to_string(&json_token).unwrap();
+
+    let output: proc_macro2::TokenStream = json_token_str.parse().expect("JSON schema type isn't a valid Rust token");
     output.into()
 }
 
