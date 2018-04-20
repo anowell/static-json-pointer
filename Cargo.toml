@@ -2,6 +2,8 @@
 name = "static-json-pointer"
 version = "0.1.0"
 authors = ["Anthony Nowell <anowell@gmail.com>"]
+license = "MIT"
+
 description = "Query static JSON for values and tokens at compile time."
 repository = "https://github.com/anowell/static-json-pointer"
 keywords = ["json", "macros"]
